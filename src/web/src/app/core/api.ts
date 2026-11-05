@@ -1,0 +1,43 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+
+import { CreateCustomer, CurrentUser, Customer, Order } from './models';
+
+/**
+ * Thin typed wrapper over the Minimal API.
+ * URLs are relative: the dev server proxies /api to the API (see proxy.conf.json),
+ * and in production both sit behind the same reverse proxy.
+ */
+@Injectable({ providedIn: 'root' })
+export class Api {
+  private readonly http = inject(HttpClient);
+
+  me(): Observable<CurrentUser> {
+    return this.http.get<CurrentUser>('/api/me');
+  }
+
+  listCustomers(search?: string): Observable<Customer[]> {
+    let params = new HttpParams();
+    if (search) {
+      params = params.set('search', search);
+    }
+    return this.http.get<Customer[]>('/api/customers', { params });
+  }
+
+  createCustomer(body: CreateCustomer): Observable<Customer> {
+    return this.http.post<Customer>('/api/customers', body);
+  }
+
+  listOrders(status?: string): Observable<Order[]> {
+    let params = new HttpParams();
+    if (status) {
+      params = params.set('status', status);
+    }
+    return this.http.get<Order[]>('/api/orders', { params });
+  }
+
+  getOrder(id: string): Observable<Order> {
+    return this.http.get<Order>(`/api/orders/${id}`);
+  }
+}

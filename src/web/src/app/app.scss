@@ -1,0 +1,58 @@
+:host {
+  display: block;
+}
+
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: #12232e;
+  color: #e8f1f6;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+nav a {
+  color: #9fc2d3;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+nav a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+nav a.active {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.page {
+  padding: 20px;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+@media (max-width: 480px) {
+  .app-bar {
+    padding: 12px 14px;
+  }
+
+  .page {
+    padding: 14px;
+  }
+}

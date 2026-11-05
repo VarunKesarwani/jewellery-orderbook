@@ -1,0 +1,12 @@
+<header class="app-bar">
+  <span class="brand">Jewellery Order Book</span>
+  <nav>
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+    <a routerLink="/orders" routerLinkActive="active">Orders</a>
+    <a routerLink="/customers" routerLinkActive="active">Customers</a>
+  </nav>
+</header>
+
+<main class="page">
+  <router-outlet />
+</main>

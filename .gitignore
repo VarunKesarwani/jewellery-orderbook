@@ -1,0 +1,35 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+artifacts/
+
+# Angular
+node_modules/
+dist/
+.angular/
+coverage/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# Local secrets and data
+appsettings.Local.json
+*.db
+*.db-shm
+*.db-wal
+secrets/
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
