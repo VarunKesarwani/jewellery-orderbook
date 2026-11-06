@@ -13,18 +13,22 @@ import { Customer } from '../../core/models';
 
       <form class="form" (ngSubmit)="create()">
         <label>
-          Name
+          Name *
           <input name="name" [(ngModel)]="draft.name" required placeholder="Ravi Jewellers" />
         </label>
         <label>
-          Phone
-          <input name="phone" [(ngModel)]="draft.phone" inputmode="tel" placeholder="9876543210" />
+          Phone *
+          <input name="phone" [(ngModel)]="draft.phone" required inputmode="tel" placeholder="9876543210" />
         </label>
         <label>
-          GSTIN
-          <input name="gstin" [(ngModel)]="draft.gstin" placeholder="33ABCDE1234F1Z5" />
+          Address *
+          <input name="address" [(ngModel)]="draft.address" required placeholder="12 Mount Road, Chennai" />
         </label>
-        <button class="button" type="submit" [disabled]="saving() || !draft.name">
+        <label>
+          PAN
+          <input name="pan" [(ngModel)]="draft.pan" maxlength="10" placeholder="ABCDE1234F" />
+        </label>
+        <button class="button" type="submit" [disabled]="saving() || !canSave()">
           {{ saving() ? 'Saving…' : 'Add customer' }}
         </button>
       </form>
@@ -41,10 +45,10 @@ import { Customer } from '../../core/models';
             <li>
               <div class="list__main">
                 <strong>{{ customer.name }}</strong>
-                <span class="muted">{{ customer.phone || 'no phone' }}</span>
+                <span class="muted">{{ customer.phone }} · {{ customer.address }}</span>
               </div>
               <div class="list__side">
-                <span class="pill">{{ customer.gstin || 'no GSTIN' }}</span>
+                <span class="pill">{{ customer.pan || 'no PAN' }}</span>
               </div>
             </li>
           }
@@ -59,14 +63,18 @@ export class CustomersPage {
   protected readonly customers = signal<Customer[]>([]);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected draft = { name: '', phone: '', gstin: '' };
+  protected draft = { name: '', phone: '', address: '', pan: '' };
 
   constructor() {
     this.load();
   }
 
+  protected canSave(): boolean {
+    return !!this.draft.name && !!this.draft.phone && !!this.draft.address;
+  }
+
   protected create(): void {
-    if (!this.draft.name) {
+    if (!this.canSave()) {
       return;
     }
 
@@ -76,12 +84,13 @@ export class CustomersPage {
     this.api
       .createCustomer({
         name: this.draft.name,
-        phone: this.draft.phone || null,
-        gstin: this.draft.gstin || null
+        phone: this.draft.phone,
+        address: this.draft.address,
+        pan: this.draft.pan || null
       })
       .subscribe({
         next: () => {
-          this.draft = { name: '', phone: '', gstin: '' };
+          this.draft = { name: '', phone: '', address: '', pan: '' };
           this.saving.set(false);
           this.load();
         },

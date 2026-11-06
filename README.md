@@ -1,37 +1,45 @@
 # Jewellery Order Book
 
-A single-tenant order book for a jewellery business: customers, orders, delivery, payments and
-reports. Angular on the phone, ASP.NET Core Minimal API on the laptop, Entra ID for identity.
-
-This repository is a **walking skeleton**. The plumbing is real and runs end to end; the domain is
-deliberately thin until the pricing rules and field lists are settled.
+A single-tenant order book for a jewellery business: customers, orders with metal and stone
+components, delivery, payments and daily reports. Angular on the phone, ASP.NET Core Minimal API on
+the laptop, Entra ID for identity.
 
 ## What works today
 
-- Minimal API with health endpoints, RFC 7807 problem details carrying stable error codes,
-  CORS for the dev server, and Entra ID bearer validation (with a development fallback).
-- Customers: list, get, create. Orders: list, get, create. Both in memory.
-- Angular app with a shell, three routes, a typed API client and INR/gram formatting pipes.
-- Dev proxy so `ng serve` talks to the API without CORS trouble.
+- **Pricing engine** — net weight, wastage, metal value, making charges, stone value, four optional
+  tax components, discount and round-off. Pure functions, covered by 29 checks.
+- **Customers** — name, phone and address mandatory; PAN, email, GSTIN, credit days and notes optional.
+- **Orders** — created with a number and a status immediately, multiple lines, stones per line,
+  per-component tax, cancel before delivery with an automatic refund.
+- **Delivery** — per line, partial allowed, order flips to Delivered when every piece is out.
+- **Payments** — recorded against an order, optionally against a specific delivered line; the order's
+  payment state is derived (Unpaid / PartiallyPaid / Paid).
+- **Reports** — three daily ones: orders, deliveries, payments.
 
-## What is not built yet
+## Scope decisions taken
 
-- The pricing engine (weights, wastage, making charges, stones). `OrderLine.LineTotalPaise` is a
-  placeholder and is marked as such in the source.
-- SQLite persistence, the backup worker, the archive reader.
-- Payments, delivery, reports.
-- A real sign-in screen. The API runs with a development identity until Entra is configured.
+These were settled deliberately and the code follows them:
+
+- No draft state. An order is created with its number and status; there is no confirm step.
+- No repair, alteration or remake order types. New orders only.
+- No customer-supplied metal.
+- No karigar or artisan tracking.
+- No metal rate master. The rate is typed per line, with the date stored for reference.
+- No payment allocation table. A payment names one order.
+- No credit notes or post-delivery returns. Cancelling before delivery refunds in full.
+- Tax is four independent components — gold, wastage, making, stone — each optional, each restricted
+  to 3, 5, 9, 12, 18 or 28 percent. Unchecked means untaxed.
+
+One consequence worth knowing: **other charges are not taxed**, because the four components have no
+box for them. If you need them taxed, say so and they join the stone component or get a fifth box.
 
 ## Prerequisites
 
 - .NET SDK 10.0 or later
-- Node.js 20.19+ (Angular 20). Node 22 LTS is recommended; upgrading the CLI to the next major is
-  a single `ng update` once you are on Node 22+.
-- A terminal, and optionally Docker for the compose file.
+- Node.js 20.19+ (Angular 20). Node 22 LTS is recommended.
+- Optionally Docker.
 
 ## Run it
-
-Two terminals.
 
 ```bash
 # terminal 1 - API on http://localhost:5080
@@ -44,64 +52,53 @@ npm install
 npm start
 ```
 
-Open http://localhost:4200. The dev server proxies `/api` and `/health` to port 5080.
-
-Quick check that the API is alive:
+Pricing checks, which run with no NuGet restore:
 
 ```bash
-curl http://localhost:5080/health/live
-curl http://localhost:5080/api/me
+dotnet run --project tests/JewelleryOrderbook.Checks
 ```
 
 ## Identity
 
-The API is an OAuth resource server. It validates a bearer token issued by Entra ID and maps app
-roles to policies: `Owner`, `Accountant`, `Viewer`.
+The API is an OAuth resource server for Entra ID, mapping app roles to `Owner`, `Accountant` and
+`Viewer` policies. Set `Entra:TenantId` and `Entra:Audience` in `src/api/appsettings.Development.json`
+to turn real validation on.
 
-Set these in `src/api/appsettings.Development.json` (or user secrets) to turn real validation on:
+With them blank and `ASPNETCORE_ENVIRONMENT=Development`, every request is authenticated as a local
+`Owner` through `DevelopmentAuthenticationHandler`. Outside Development the API refuses to start
+without a tenant. The Angular side will use `@azure/msal-angular` with authorization code + PKCE;
+there is no client secret anywhere in this repository and there never should be.
 
-```json
-{
-  "Entra": {
-    "TenantId": "<tenant-guid>",
-    "Audience": "api://<api-app-client-id>"
-  }
-}
-```
+## Conventions
 
-With them blank and `ASPNETCORE_ENVIRONMENT=Development`, the API authenticates every request as a
-local `Owner` through `DevelopmentAuthenticationHandler` so you can build screens before the app
-registration exists. Outside Development the API refuses to start without a tenant — that guard is
-intentional.
-
-The Angular side will use `@azure/msal-angular` with authorization code + PKCE. There is no client
-secret anywhere in this repository, and there never should be: the SPA is a public client.
+- Money is integer **paise** everywhere. Divided by 100 only when displayed.
+- Weight is integer **milligrams**; carats are integer thousandths.
+- Percentages are integer **basis points** (800 = 8%).
+- Every error carries a stable `code` in the problem details.
+- Derived values are computed by `Domain/Pricing.cs` and stored, never entered.
 
 ## Layout
 
 ```
 src/
-  api/                     ASP.NET Core Minimal API
-    Contracts/             request and response records
-    Domain/                entities and enums
-    Endpoints/             route groups, one file per resource
-    Extensions/            auth, CORS, helpers
-    Infrastructure/        repository interfaces and in-memory implementations
-  web/                     Angular application
-    src/app/core/          API client and DTOs
-    src/app/features/      dashboard, orders, customers
-    src/app/shared/        formatting pipes
+  api/
+    Contracts/       request and response records
+    Domain/          entities, enums and the pricing engine
+    Endpoints/       route groups, one file per resource
+    Extensions/      auth, CORS, helpers
+    Infrastructure/  IDataStore and the in-memory implementation
+  web/
+    src/app/core/      API client and DTOs
+    src/app/features/  dashboard, orders, customers
+    src/app/shared/    formatting pipes
+tests/
+  JewelleryOrderbook.Checks/   pricing checks
 ```
 
-## Conventions
+## Next
 
-- Money is integer **paise** everywhere: in the database, on the wire, in TypeScript. It is only
-  divided by 100 at the moment it is displayed.
-- Weight is integer **milligrams**; carats are integer thousandths.
-- Percentages are integer **basis points** (800 = 8%).
-- Every error carries a `code` in the problem details so the client can branch without matching on
-  message text.
-- Endpoints are plural nouns; verbs appear only for real state transitions (`/confirm`, `/cancel`).
+SQLite persistence behind `IDataStore`, the order entry screen, delivery and payment screens, MSAL
+sign-in, and the backup and purge jobs.
 
 ## Licence
 

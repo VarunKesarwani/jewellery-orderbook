@@ -9,13 +9,12 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddCorsForWebClient(builder.Configuration);
 
-// Entra ID. In Development with no tenant configured this is a no-op,
+// Entra ID. In Development with no tenant configured this falls back to a local identity,
 // so the API is runnable before the app registration exists.
 builder.AddEntraAuthentication(builder.Configuration);
 
-// In-memory for now. Swap for SQLite in Infrastructure/Persistence.
-builder.Services.AddSingleton<ICustomerRepository, InMemoryCustomerRepository>();
-builder.Services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
+// In memory for now. Swap for SQLite behind the same IDataStore interface.
+builder.Services.AddSingleton<IDataStore, InMemoryDataStore>();
 
 var app = builder.Build();
 
@@ -28,6 +27,9 @@ app.UseAuthorization();
 app.MapHealthEndpoints();
 app.MapCustomerEndpoints();
 app.MapOrderEndpoints();
+app.MapDeliveryEndpoints();
+app.MapPaymentEndpoints();
+app.MapReportEndpoints();
 app.MapIdentityEndpoints();
 
 app.Run();

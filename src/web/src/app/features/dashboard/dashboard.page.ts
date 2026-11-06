@@ -12,8 +12,8 @@ import { InrPipe } from '../../shared/format.pipes';
     <section class="card">
       <h1>Jewellery Order Book</h1>
       <p class="muted">
-        Orders, delivery and payments for a single-tenant jewellery business. This build is the
-        walking skeleton: the plumbing works end to end, the pricing engine is still a placeholder.
+        Orders, delivery and payments for a single-tenant jewellery business. The pricing engine is
+        live; persistence and sign-in are still to come.
       </p>
 
       @if (user(); as me) {
@@ -31,8 +31,12 @@ import { InrPipe } from '../../shared/format.pipes';
           <dd>{{ orders().length }}</dd>
         </div>
         <div>
-          <dt>Open value</dt>
-          <dd>{{ openValue() | inr }}</dd>
+          <dt>Order value</dt>
+          <dd>{{ orderValue() | inr }}</dd>
+        </div>
+        <div>
+          <dt>Collected</dt>
+          <dd>{{ collected() | inr }}</dd>
         </div>
       </dl>
 
@@ -57,7 +61,8 @@ export class DashboardPage {
   protected readonly orders = signal<Order[]>([]);
   protected readonly error = signal<string | null>(null);
 
-  protected openValue = () => this.orders().reduce((sum, o) => sum + o.totalPaise, 0);
+  protected orderValue = () => this.orders().reduce((sum, o) => sum + o.finalAmountPaise, 0);
+  protected collected = () => this.orders().reduce((sum, o) => sum + o.paidPaise, 0);
 
   constructor() {
     this.api.me().subscribe({

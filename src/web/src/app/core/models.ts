@@ -4,41 +4,94 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
+  address: string;
+  pan: string | null;
   email: string | null;
   gstin: string | null;
+  creditDays: number;
+  notes: string | null;
   isActive: boolean;
 }
 
+/** Name, phone and address are the only mandatory fields. */
 export interface CreateCustomer {
   name: string;
-  phone?: string | null;
+  phone: string;
+  address: string;
+  pan?: string | null;
   email?: string | null;
   gstin?: string | null;
-  billingAddress?: string | null;
   creditDays?: number;
+  notes?: string | null;
+}
+
+/** Whole percentages: 3, 5, 9, 12, 18 or 28. Null means the component is untaxed. */
+export interface TaxConfig {
+  gold: number | null;
+  wastage: number | null;
+  making: number | null;
+  stone: number | null;
+}
+
+export interface Stone {
+  id: string;
+  category: string;
+  name: string | null;
+  shape: string | null;
+  stoneCount: number;
+  totalCaratsMilli: number;
+  colourGrade: string | null;
+  clarityGrade: string | null;
+  certificationLab: string | null;
+  certificateNumber: string | null;
+  stoneValuePaise: number;
+  settingType: string | null;
 }
 
 export interface OrderLine {
   id: string;
   itemName: string;
+  itemDescription: string | null;
   quantity: number;
   metalType: string;
   metalPurity: string | null;
   grossWeightMg: number;
+  netWeightMg: number;
+  wastageWeightMg: number;
   ratePerGramPaise: number;
+  rateDate: string;
+  metalValuePaise: number;
+  wastageChargePaise: number;
   makingChargesPaise: number;
+  stoneValuePaise: number;
+  otherChargesPaise: number;
+  subtotalPaise: number;
+  discountPaise: number;
+  tax: TaxConfig;
+  taxPaise: number;
   lineTotalPaise: number;
+  deliveredPieces: number;
+  stones: Stone[];
 }
 
 export interface Order {
   id: string;
-  number: string;
+  number: number;
   customerId: string;
-  orderType: string;
-  status: string;
+  customerName: string;
   orderDate: string;
   expectedDeliveryDate: string | null;
-  totalPaise: number;
+  status: string;
+  paymentState: string;
+  notes: string | null;
+  cancellationReason: string | null;
+  subtotalPaise: number;
+  taxPaise: number;
+  roundOffPaise: number;
+  finalAmountPaise: number;
+  paidPaise: number;
+  totalPieces: number;
+  deliveredPieces: number;
   lines: OrderLine[];
 }
 

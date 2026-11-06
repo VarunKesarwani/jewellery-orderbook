@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Checks for the pricing engine.
+
+    The domain sources are compiled directly rather than referenced as a project,
+    so this runs with no NuGet restore and can be executed on any machine.
+    Run it from the repository root with: dotnet run followed by the project path.
+
+    Once the API project's packages can be restored in CI, this converts to an
+    xunit project with no change to the assertions.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>JewelleryOrderbook.Checks</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../src/api/Domain/*.cs" />
+  </ItemGroup>
+
+</Project>
