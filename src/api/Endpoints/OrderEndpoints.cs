@@ -18,25 +18,10 @@ public static class OrderEndpoints
             {
                 var query = store.Orders.AsEnumerable();
 
-                if (customerId is not null)
-                {
-                    query = query.Where(o => o.CustomerId == customerId);
-                }
-
-                if (status is not null)
-                {
-                    query = query.Where(o => o.Status == status);
-                }
-
-                if (from is not null)
-                {
-                    query = query.Where(o => o.OrderDate >= from);
-                }
-
-                if (to is not null)
-                {
-                    query = query.Where(o => o.OrderDate <= to);
-                }
+                if (customerId is not null) query = query.Where(o => o.CustomerId == customerId);
+                if (status is not null) query = query.Where(o => o.Status == status);
+                if (from is not null) query = query.Where(o => o.OrderDate >= from);
+                if (to is not null) query = query.Where(o => o.OrderDate <= to);
 
                 if (!string.IsNullOrWhiteSpace(search))
                 {
@@ -53,6 +38,15 @@ public static class OrderEndpoints
             })
             .WithName("SearchOrders");
 
+        // Prices an unsaved order so the screen shows the same number that will be stored.
+        group.MapPost("/calculate", (OrderRequest request, IDataStore store) =>
+            {
+                var (order, error) = BuildOrder(request, number: 0);
+                return error ?? Results.Ok(OrderResponse.From(order!, null, 0, 0));
+            })
+            .RequireAuthorization(AuthorizationPolicies.Write)
+            .WithName("CalculateOrder");
+
         group.MapGet("/{id:guid}", (Guid id, IDataStore store) =>
                 store.GetOrder(id) is { } order
                     ? Results.Ok(OrderResponse.From(order, store.GetCustomer(order.CustomerId),
@@ -67,90 +61,15 @@ public static class OrderEndpoints
                     return ApiResults.Problem("customer.not_found", StatusCodes.Status400BadRequest);
                 }
 
-                if (request.Lines is null || request.Lines.Count == 0)
+                var (order, error) = BuildOrder(request, store.NextOrderNumber());
+                if (error is not null)
                 {
-                    return ApiResults.Problem("order.no_lines", StatusCodes.Status400BadRequest);
+                    return error;
                 }
 
-                var orderTax = (request.Tax ?? new TaxRequest(null, null, null, null)).ToConfig();
-                if (!orderTax.IsValid())
-                {
-                    return ApiResults.Problem("tax.rate_invalid", StatusCodes.Status400BadRequest,
-                        "Allowed rates are 3, 5, 9, 12, 18 and 28 percent.");
-                }
+                store.AddOrder(order!);
 
-                var order = new Order
-                {
-                    Id = Guid.CreateVersion7(),
-                    Number = store.NextOrderNumber(),
-                    CustomerId = request.CustomerId,
-                    OrderDate = request.OrderDate,
-                    ExpectedDeliveryDate = request.ExpectedDeliveryDate,
-                    Notes = request.Notes,
-                    Status = OrderStatus.Pending
-                };
-
-                foreach (var lineRequest in request.Lines)
-                {
-                    if (lineRequest.GrossWeightMg <= 0)
-                    {
-                        return ApiResults.Problem("line.weight_invalid", StatusCodes.Status400BadRequest);
-                    }
-
-                    var tax = (lineRequest.Tax ?? request.Tax ?? new TaxRequest(null, null, null, null)).ToConfig();
-                    if (!tax.IsValid())
-                    {
-                        return ApiResults.Problem("tax.rate_invalid", StatusCodes.Status400BadRequest,
-                            "Allowed rates are 3, 5, 9, 12, 18 and 28 percent.");
-                    }
-
-                    var line = new OrderLine
-                    {
-                        Id = Guid.CreateVersion7(),
-                        ItemName = lineRequest.ItemName,
-                        ItemDescription = lineRequest.ItemDescription,
-                        Quantity = Math.Max(1, lineRequest.Quantity),
-                        MetalType = Enum.TryParse<MetalType>(lineRequest.MetalType, true, out var metal) ? metal : MetalType.Gold,
-                        MetalPurity = lineRequest.MetalPurity,
-                        GrossWeightMg = lineRequest.GrossWeightMg,
-                        RatePerGramPaise = lineRequest.RatePerGramPaise,
-                        RateDate = lineRequest.RateDate ?? request.OrderDate,
-                        WastagePctBp = lineRequest.WastagePctBp,
-                        MakingType = Enum.TryParse<MakingChargeType>(lineRequest.MakingType, true, out var making) ? making : MakingChargeType.PerGram,
-                        MakingRate = lineRequest.MakingRate,
-                        OtherChargesPaise = lineRequest.OtherChargesPaise,
-                        DiscountPaise = lineRequest.DiscountPaise,
-                        Tax = tax
-                    };
-
-                    foreach (var stone in lineRequest.Stones ?? [])
-                    {
-                        line.Stones.Add(new LineStone
-                        {
-                            Id = Guid.CreateVersion7(),
-                            Category = Enum.TryParse<StoneCategory>(stone.Category, true, out var category) ? category : StoneCategory.Diamond,
-                            Name = stone.Name,
-                            OriginType = stone.OriginType,
-                            Treatment = stone.Treatment,
-                            Shape = stone.Shape,
-                            StoneCount = Math.Max(1, stone.StoneCount),
-                            TotalCaratsMilli = stone.TotalCaratsMilli,
-                            ColourGrade = stone.ColourGrade,
-                            ClarityGrade = stone.ClarityGrade,
-                            CertificationLab = stone.CertificationLab,
-                            CertificateNumber = stone.CertificateNumber,
-                            StoneValuePaise = stone.StoneValuePaise,
-                            SettingType = stone.SettingType
-                        });
-                    }
-
-                    line.Totals = Pricing.ComputeLine(line);
-                    order.Lines.Add(line);
-                }
-
-                store.AddOrder(order);
-
-                return Results.Created($"/api/orders/{order.Id}",
+                return Results.Created($"/api/orders/{order!.Id}",
                     OrderResponse.From(order, store.GetCustomer(order.CustomerId), 0, 0));
             })
             .RequireAuthorization(AuthorizationPolicies.Write)
@@ -227,5 +146,100 @@ public static class OrderEndpoints
             .WithName("CancelOrder");
 
         return app;
+    }
+
+    /// <summary>
+    /// Builds and prices an order from a request without touching the store.
+    /// Shared by create and calculate so the preview cannot drift from the saved result.
+    /// </summary>
+    private static (Order? Order, IResult? Error) BuildOrder(OrderRequest request, long number)
+    {
+        if (request.Lines is null || request.Lines.Count == 0)
+        {
+            return (null, ApiResults.Problem("order.no_lines", StatusCodes.Status400BadRequest));
+        }
+
+        var orderTax = (request.Tax ?? new TaxRequest(null, null, null, null)).ToConfig();
+        if (!orderTax.IsValid())
+        {
+            return (null, ApiResults.Problem("tax.rate_invalid", StatusCodes.Status400BadRequest,
+                "Allowed rates are 3, 5, 9, 12, 18 and 28 percent."));
+        }
+
+        var order = new Order
+        {
+            Id = Guid.CreateVersion7(),
+            Number = number,
+            CustomerId = request.CustomerId,
+            OrderDate = request.OrderDate,
+            ExpectedDeliveryDate = request.ExpectedDeliveryDate,
+            Notes = request.Notes,
+            Status = OrderStatus.Pending
+        };
+
+        foreach (var lineRequest in request.Lines)
+        {
+            if (lineRequest.GrossWeightMg <= 0)
+            {
+                return (null, ApiResults.Problem("line.weight_invalid", StatusCodes.Status400BadRequest));
+            }
+
+            if (string.IsNullOrWhiteSpace(lineRequest.ItemName))
+            {
+                return (null, ApiResults.Problem("line.item_required", StatusCodes.Status400BadRequest));
+            }
+
+            var tax = (lineRequest.Tax ?? request.Tax ?? new TaxRequest(null, null, null, null)).ToConfig();
+            if (!tax.IsValid())
+            {
+                return (null, ApiResults.Problem("tax.rate_invalid", StatusCodes.Status400BadRequest,
+                    "Allowed rates are 3, 5, 9, 12, 18 and 28 percent."));
+            }
+
+            var line = new OrderLine
+            {
+                Id = Guid.CreateVersion7(),
+                ItemName = lineRequest.ItemName,
+                ItemDescription = lineRequest.ItemDescription,
+                Quantity = Math.Max(1, lineRequest.Quantity),
+                MetalType = Enum.TryParse<MetalType>(lineRequest.MetalType, true, out var metal) ? metal : MetalType.Gold,
+                MetalPurity = lineRequest.MetalPurity,
+                GrossWeightMg = lineRequest.GrossWeightMg,
+                RatePerGramPaise = lineRequest.RatePerGramPaise,
+                RateDate = lineRequest.RateDate ?? request.OrderDate,
+                WastagePctBp = lineRequest.WastagePctBp,
+                MakingType = Enum.TryParse<MakingChargeType>(lineRequest.MakingType, true, out var making) ? making : MakingChargeType.PerGram,
+                MakingRate = lineRequest.MakingRate,
+                OtherChargesPaise = lineRequest.OtherChargesPaise,
+                DiscountPaise = lineRequest.DiscountPaise,
+                Tax = tax
+            };
+
+            foreach (var stone in lineRequest.Stones ?? [])
+            {
+                line.Stones.Add(new LineStone
+                {
+                    Id = Guid.CreateVersion7(),
+                    Category = Enum.TryParse<StoneCategory>(stone.Category, true, out var category) ? category : StoneCategory.Diamond,
+                    Name = stone.Name,
+                    OriginType = stone.OriginType,
+                    Treatment = stone.Treatment,
+                    Shape = stone.Shape,
+                    StoneCount = Math.Max(1, stone.StoneCount),
+                    TotalCaratsMilli = stone.TotalCaratsMilli,
+                    ColourGrade = stone.ColourGrade,
+                    ClarityGrade = stone.ClarityGrade,
+                    CertificationLab = stone.CertificationLab,
+                    CertificateNumber = stone.CertificateNumber,
+                    StoneValuePaise = stone.StoneValuePaise,
+                    SettingType = stone.SettingType
+                });
+            }
+
+            line.Totals = Pricing.ComputeLine(line);
+            order.Lines.Add(line);
+        }
+
+        return (order, null);
     }
 }

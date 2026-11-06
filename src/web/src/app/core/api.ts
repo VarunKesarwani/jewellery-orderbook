@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { CreateCustomer, CurrentUser, Customer, Order } from './models';
+import { CreateCustomer, CurrentUser, Customer, Order, OrderRequest } from './models';
 
 /**
  * Thin typed wrapper over the Minimal API.
@@ -39,5 +39,18 @@ export class Api {
 
   getOrder(id: string): Observable<Order> {
     return this.http.get<Order>(`/api/orders/${id}`);
+  }
+
+  /** Prices an unsaved order. The server owns the arithmetic; this is the preview. */
+  calculateOrder(body: OrderRequest): Observable<Order> {
+    return this.http.post<Order>('/api/orders/calculate', body);
+  }
+
+  createOrder(body: OrderRequest): Observable<Order> {
+    return this.http.post<Order>('/api/orders', body);
+  }
+
+  cancelOrder(id: string, reason: string): Observable<Order> {
+    return this.http.post<Order>(`/api/orders/${id}/cancel`, { reason });
   }
 }

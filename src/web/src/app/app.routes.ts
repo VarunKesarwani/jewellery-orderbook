@@ -7,6 +7,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage)
   },
   {
+    path: 'orders/new',
+    title: 'New order',
+    loadComponent: () => import('./features/orders/order-entry.page').then((m) => m.OrderEntryPage)
+  },
+  {
     path: 'orders',
     title: 'Orders',
     loadComponent: () => import('./features/orders/orders.page').then((m) => m.OrdersPage)

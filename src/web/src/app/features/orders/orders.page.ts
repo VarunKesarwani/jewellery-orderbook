@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { Api } from '../../core/api';
 import { Order } from '../../core/models';
@@ -6,10 +7,18 @@ import { GramsPipe, InrPipe } from '../../shared/format.pipes';
 
 @Component({
   selector: 'app-orders',
-  imports: [InrPipe, GramsPipe],
+  imports: [InrPipe, GramsPipe, RouterLink],
   template: `
     <section class="card">
-      <h1>Orders</h1>
+      <div class="toolbar">
+        <h1>Orders</h1>
+        <span class="spacer"></span>
+        <a class="button" routerLink="/orders/new">New order</a>
+      </div>
+
+      @if (created()) {
+        <p class="banner">Order #{{ created() }} saved.</p>
+      }
 
       <div class="toolbar">
         <label for="status">Status</label>
@@ -62,9 +71,11 @@ export class OrdersPage {
 
   protected readonly orders = signal<Order[]>([]);
   protected readonly status = signal('');
+  protected readonly created = signal<string | null>(null);
   protected readonly loading = signal(true);
 
   constructor() {
+    this.created.set(inject(ActivatedRoute).snapshot.queryParamMap.get('created'));
     this.load();
   }
 

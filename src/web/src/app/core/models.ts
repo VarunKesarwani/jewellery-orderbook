@@ -111,3 +111,54 @@ export interface ApiProblem {
   code?: string;
   traceId?: string;
 }
+
+// ---------------------------------------------------------------- requests
+
+/** Whole percentages: 3, 5, 9, 12, 18 or 28. Null means that component is untaxed. */
+export interface TaxRequest {
+  gold: number | null;
+  wastage: number | null;
+  making: number | null;
+  stone: number | null;
+}
+
+export interface StoneRequest {
+  category: string;
+  name?: string | null;
+  shape?: string | null;
+  stoneCount: number;
+  totalCaratsMilli: number;
+  colourGrade?: string | null;
+  clarityGrade?: string | null;
+  certificationLab?: string | null;
+  certificateNumber?: string | null;
+  stoneValuePaise: number;
+  settingType?: string | null;
+}
+
+export interface LineRequest {
+  itemName: string;
+  itemDescription?: string | null;
+  quantity: number;
+  metalType: string;
+  metalPurity?: string | null;
+  grossWeightMg: number;
+  ratePerGramPaise: number;
+  rateDate?: string | null;
+  wastagePctBp: number;
+  makingType: string;
+  makingRate: number;
+  otherChargesPaise: number;
+  discountPaise: number;
+  tax?: TaxRequest | null;
+  stones?: StoneRequest[];
+}
+
+export interface OrderRequest {
+  customerId: string;
+  orderDate: string;
+  expectedDeliveryDate?: string | null;
+  notes?: string | null;
+  tax?: TaxRequest | null;
+  lines: LineRequest[];
+}

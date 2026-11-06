@@ -14,6 +14,9 @@ the laptop, Entra ID for identity.
 - **Delivery** — per line, partial allowed, order flips to Delivered when every piece is out.
 - **Payments** — recorded against an order, optionally against a specific delivered line; the order's
   payment state is derived (Unpaid / PartiallyPaid / Paid).
+- **Order entry screen** — customer picker, metal block, stones, the four tax boxes, and live
+  totals priced by the server on every keystroke (`POST /api/orders/calculate`), so the preview
+  cannot drift from what gets stored.
 - **Reports** — three daily ones: orders, deliveries, payments.
 - **SQLite persistence** — schema applied on first start, WAL, foreign keys on. `IDataStore` keeps
   an in-memory implementation for tests and throwaway runs.
@@ -130,8 +133,7 @@ tests/
 
 ## Next
 
-The order entry screen — the four tax boxes are the interesting part — then delivery and payment
-screens, MSAL sign-in, and the backup and purge jobs.
+Delivery and payment screens, order detail with cancel, MSAL sign-in, and the backup and purge jobs.
 
 ## Licence
 
