@@ -8,51 +8,7 @@ import { InrPipe } from '../../shared/format.pipes';
 @Component({
   selector: 'app-dashboard',
   imports: [RouterLink, InrPipe],
-  template: `
-    <section class="card">
-      <h1>Jewellery Order Book</h1>
-      <p class="muted">
-        Orders, delivery and payments for a single-tenant jewellery business. The pricing engine is
-        live; persistence and sign-in are still to come.
-      </p>
-
-      @if (user(); as me) {
-        <p class="pill-row">
-          <span class="pill">signed in as {{ me.name }}</span>
-          @for (role of me.roles; track role) {
-            <span class="pill pill--accent">{{ role }}</span>
-          }
-        </p>
-      }
-
-      <dl class="stats">
-        <div>
-          <dt>Orders</dt>
-          <dd>{{ orders().length }}</dd>
-        </div>
-        <div>
-          <dt>Order value</dt>
-          <dd>{{ orderValue() | inr }}</dd>
-        </div>
-        <div>
-          <dt>Collected</dt>
-          <dd>{{ collected() | inr }}</dd>
-        </div>
-      </dl>
-
-      <p class="actions">
-        <a class="button" routerLink="/orders">View orders</a>
-        <a class="button button--ghost" routerLink="/customers">View customers</a>
-      </p>
-    </section>
-
-    @if (error()) {
-      <section class="card card--error">
-        <strong>Could not reach the API.</strong>
-        <p class="muted">{{ error() }}</p>
-      </section>
-    }
-  `
+  templateUrl: './dashboard.page.html'
 })
 export class DashboardPage {
   private readonly api = inject(Api);

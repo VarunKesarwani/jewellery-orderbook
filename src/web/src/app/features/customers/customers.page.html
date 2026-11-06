@@ -1,0 +1,47 @@
+<section class="card">
+  <h1>Customers</h1>
+
+  <form class="form" (ngSubmit)="create()">
+    <label>
+      Name *
+      <input name="name" [(ngModel)]="draft.name" required placeholder="Ravi Jewellers" />
+    </label>
+    <label>
+      Phone *
+      <input name="phone" [(ngModel)]="draft.phone" required inputmode="tel" placeholder="9876543210" />
+    </label>
+    <label>
+      Address *
+      <input name="address" [(ngModel)]="draft.address" required placeholder="12 Mount Road, Chennai" />
+    </label>
+    <label>
+      PAN
+      <input name="pan" [(ngModel)]="draft.pan" maxlength="10" placeholder="ABCDE1234F" />
+    </label>
+    <button class="button" type="submit" [disabled]="saving() || !canSave()">
+      {{ saving() ? 'Saving…' : 'Add customer' }}
+    </button>
+  </form>
+
+  @if (error()) {
+    <p class="card--error">{{ error() }}</p>
+  }
+
+  @if (customers().length === 0) {
+    <p class="muted">No customers yet.</p>
+  } @else {
+    <ul class="list">
+      @for (customer of customers(); track customer.id) {
+        <li>
+          <div class="list__main">
+            <strong>{{ customer.name }}</strong>
+            <span class="muted">{{ customer.phone }} · {{ customer.address }}</span>
+          </div>
+          <div class="list__side">
+            <span class="pill">{{ customer.pan || 'no PAN' }}</span>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>
