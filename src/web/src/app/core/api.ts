@@ -2,7 +2,10 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { CreateCustomer, CurrentUser, Customer, Order, OrderRequest } from './models';
+import {
+  CreateCustomer, CurrentUser, Customer, Delivery, DeliveryRequest, Order, OrderRequest,
+  Payment, PaymentRequest
+} from './models';
 
 /**
  * Thin typed wrapper over the Minimal API.
@@ -52,5 +55,27 @@ export class Api {
 
   cancelOrder(id: string, reason: string): Observable<Order> {
     return this.http.post<Order>(`/api/orders/${id}/cancel`, { reason });
+  }
+
+  changeOrderStatus(id: string, status: string): Observable<Order> {
+    return this.http.post<Order>(`/api/orders/${id}/status`, { status });
+  }
+
+  listDeliveries(orderId: string): Observable<Delivery[]> {
+    const params = new HttpParams().set('orderId', orderId);
+    return this.http.get<Delivery[]>('/api/deliveries', { params });
+  }
+
+  createDelivery(body: DeliveryRequest): Observable<Delivery> {
+    return this.http.post<Delivery>('/api/deliveries', body);
+  }
+
+  listPayments(orderId: string): Observable<Payment[]> {
+    const params = new HttpParams().set('orderId', orderId);
+    return this.http.get<Payment[]>('/api/payments', { params });
+  }
+
+  createPayment(body: PaymentRequest): Observable<Payment> {
+    return this.http.post<Payment>('/api/payments', body);
   }
 }

@@ -162,3 +162,48 @@ export interface OrderRequest {
   tax?: TaxRequest | null;
   lines: LineRequest[];
 }
+
+export interface DeliveryLine {
+  orderLineId: string;
+  quantity: number;
+}
+
+export interface Delivery {
+  id: string;
+  number: number;
+  orderId: string;
+  deliveredOn: string;
+  receivedBy: string | null;
+  notes: string | null;
+  totalPieces: number;
+  lines: DeliveryLine[];
+}
+
+export interface DeliveryRequest {
+  orderId: string;
+  deliveredOn: string;
+  receivedBy?: string | null;
+  notes?: string | null;
+  lines: DeliveryLine[];
+}
+
+export interface Payment {
+  id: string;
+  number: number;
+  orderId: string;
+  orderLineId: string | null;
+  amountPaise: number;
+  paidOn: string;
+  method: string | null;
+  reference: string | null;
+  isRefund: boolean;
+}
+
+export interface PaymentRequest {
+  orderId: string;
+  orderLineId?: string | null;
+  amountPaise: number;
+  paidOn: string;
+  method?: string | null;
+  reference?: string | null;
+}

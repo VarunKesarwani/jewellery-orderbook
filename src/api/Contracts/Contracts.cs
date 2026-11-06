@@ -101,7 +101,8 @@ public sealed record OrderResponse(
     int TotalPieces, int DeliveredPieces,
     IReadOnlyList<LineResponse> Lines)
 {
-    public static OrderResponse From(Order o, Customer? customer, int deliveredPieces, long paidPaise)
+    public static OrderResponse From(Order o, Customer? customer, int deliveredPieces, long paidPaise,
+        Func<Guid, int>? deliveredForLine = null)
     {
         var state = paidPaise <= 0
             ? PaymentStateEnum.Unpaid
@@ -113,7 +114,7 @@ public sealed record OrderResponse(
             o.Status.ToString(), state.ToString(), o.Notes, o.CancellationReason,
             o.SubtotalPaise, o.TaxPaise, o.RoundOffPaise, o.FinalAmountPaise, paidPaise,
             o.TotalPieces, deliveredPieces,
-            o.Lines.Select(l => LineResponse.From(l, 0)).ToList());
+            o.Lines.Select(l => LineResponse.From(l, deliveredForLine?.Invoke(l.Id) ?? 0)).ToList());
     }
 }
 

@@ -31,10 +31,7 @@ public static class OrderEndpoints
                         || (store.GetCustomer(o.CustomerId)?.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
                 }
 
-                return Results.Ok(query
-                    .OrderByDescending(o => o.Number)
-                    .Select(o => OrderResponse.From(o, store.GetCustomer(o.CustomerId),
-                        store.DeliveredPieces(o.Id), store.PaidPaise(o.Id))));
+                return Results.Ok(query.OrderByDescending(o => o.Number).Select(o => ToResponse(o, store)));
             })
             .WithName("SearchOrders");
 
@@ -49,8 +46,7 @@ public static class OrderEndpoints
 
         group.MapGet("/{id:guid}", (Guid id, IDataStore store) =>
                 store.GetOrder(id) is { } order
-                    ? Results.Ok(OrderResponse.From(order, store.GetCustomer(order.CustomerId),
-                        store.DeliveredPieces(order.Id), store.PaidPaise(order.Id)))
+                    ? Results.Ok(ToResponse(order, store))
                     : ApiResults.Problem("order.not_found", StatusCodes.Status404NotFound))
             .WithName("GetOrder");
 
@@ -69,8 +65,7 @@ public static class OrderEndpoints
 
                 store.AddOrder(order!);
 
-                return Results.Created($"/api/orders/{order!.Id}",
-                    OrderResponse.From(order, store.GetCustomer(order.CustomerId), 0, 0));
+                return Results.Created($"/api/orders/{order!.Id}", ToResponse(order!, store));
             })
             .RequireAuthorization(AuthorizationPolicies.Write)
             .WithName("CreateOrder");
@@ -94,8 +89,7 @@ public static class OrderEndpoints
 
                 order.Status = next;
                 store.UpdateOrder(order);
-                return Results.Ok(OrderResponse.From(order, store.GetCustomer(order.CustomerId),
-                    store.DeliveredPieces(order.Id), store.PaidPaise(order.Id)));
+                return Results.Ok(ToResponse(order, store));
             })
             .RequireAuthorization(AuthorizationPolicies.Write)
             .WithName("ChangeOrderStatus");
@@ -139,13 +133,32 @@ public static class OrderEndpoints
                 order.CancellationReason = request.Reason;
                 store.UpdateOrder(order);
 
-                return Results.Ok(OrderResponse.From(order, store.GetCustomer(order.CustomerId),
-                    0, store.PaidPaise(order.Id)));
+                return Results.Ok(ToResponse(order, store));
             })
             .RequireAuthorization(AuthorizationPolicies.Write)
             .WithName("CancelOrder");
 
         return app;
+    }
+
+    /// <summary>
+    /// One place that turns an order into a response, counting delivered pieces per line
+    /// from the deliveries already recorded.
+    /// </summary>
+    private static OrderResponse ToResponse(Order order, IDataStore store)
+    {
+        var perLine = store.Deliveries
+            .Where(d => d.OrderId == order.Id)
+            .SelectMany(d => d.Lines)
+            .GroupBy(l => l.OrderLineId)
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.Quantity));
+
+        return OrderResponse.From(
+            order,
+            store.GetCustomer(order.CustomerId),
+            store.DeliveredPieces(order.Id),
+            store.PaidPaise(order.Id),
+            lineId => perLine.GetValueOrDefault(lineId));
     }
 
     /// <summary>

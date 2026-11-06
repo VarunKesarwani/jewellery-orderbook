@@ -40,7 +40,7 @@ import { GramsPipe, InrPipe } from '../../shared/format.pipes';
       } @else {
         <ul class="list">
           @for (order of orders(); track order.id) {
-            <li>
+            <li class="list__row" [routerLink]="['/orders', order.id]">
               <div class="list__main">
                 <strong>#{{ order.number }} · {{ order.customerName }}</strong>
                 <span class="muted">{{ order.orderDate }} · {{ order.status }}</span>

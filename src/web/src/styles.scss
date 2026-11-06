@@ -318,3 +318,23 @@ fieldset.block legend {
   font-size: 14px;
   margin-bottom: 12px;
 }
+
+.list__row {
+  cursor: pointer;
+}
+
+.list__row:hover {
+  background: var(--accent-soft);
+}
+
+.card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 22px 0 10px;
+  letter-spacing: -0.01em;
+}
+
+/* Tables in the app scroll rather than wrap when the phone is narrow. */
+.card table {
+  min-width: 460px;
+}
