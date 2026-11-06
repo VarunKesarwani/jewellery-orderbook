@@ -338,3 +338,28 @@ fieldset.block legend {
 .card table {
   min-width: 460px;
 }
+
+.plain-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+table tfoot td {
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 10px;
+}
+
+label.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+label.inline input {
+  width: auto;
+}

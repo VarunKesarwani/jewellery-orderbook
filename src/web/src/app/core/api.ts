@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import {
   CreateCustomer, CurrentUser, Customer, Delivery, DeliveryRequest, Order, OrderRequest,
-  Payment, PaymentRequest
+  DailyDeliveriesReport, DailyOrdersReport, DailyPaymentsReport, Payment, PaymentRequest
 } from './models';
 
 /**
@@ -77,5 +77,23 @@ export class Api {
 
   createPayment(body: PaymentRequest): Observable<Payment> {
     return this.http.post<Payment>('/api/payments', body);
+  }
+
+  dailyOrders(date: string): Observable<DailyOrdersReport> {
+    return this.http.get<DailyOrdersReport>('/api/reports/daily/orders', {
+      params: new HttpParams().set('date', date)
+    });
+  }
+
+  dailyDeliveries(date: string): Observable<DailyDeliveriesReport> {
+    return this.http.get<DailyDeliveriesReport>('/api/reports/daily/deliveries', {
+      params: new HttpParams().set('date', date)
+    });
+  }
+
+  dailyPayments(date: string): Observable<DailyPaymentsReport> {
+    return this.http.get<DailyPaymentsReport>('/api/reports/daily/payments', {
+      params: new HttpParams().set('date', date)
+    });
   }
 }

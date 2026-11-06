@@ -20,7 +20,8 @@ the laptop, Entra ID for identity.
 - **Order detail** — items with delivered and remaining counts, delivery recording per line, payment
   recording, status changes, and cancellation with refund. Delivery and payment are panels on the
   order rather than separate screens.
-- **Reports** — three daily ones: orders, deliveries, payments.
+- **Reports** — a daily screen with three views of one date: orders raised, deliveries made, money
+  received, each grouped by its own date and each linking back to the order.
 - **SQLite persistence** — schema applied on first start, WAL, foreign keys on. `IDataStore` keeps
   an in-memory implementation for tests and throwaway runs.
 
@@ -136,7 +137,7 @@ tests/
 
 ## Next
 
-MSAL sign-in, the three daily report screens, and the backup and purge jobs.
+MSAL sign-in and the backup and purge jobs.
 
 ## Licence
 

@@ -23,6 +23,7 @@ public static class ReportEndpoints
                     .OrderBy(o => o.Number)
                     .Select(o => new
                     {
+                        id = o.Id,
                         number = o.Number,
                         customer = store.GetCustomer(o.CustomerId)?.Name,
                         pieces = o.TotalPieces,
@@ -52,6 +53,8 @@ public static class ReportEndpoints
                     .OrderBy(d => d.Number)
                     .Select(d => new
                     {
+                        id = d.Id,
+                        orderId = d.OrderId,
                         number = d.Number,
                         orderNumber = store.GetOrder(d.OrderId)?.Number,
                         customer = store.GetCustomer(store.GetOrder(d.OrderId)?.CustomerId ?? Guid.Empty)?.Name,
@@ -78,6 +81,8 @@ public static class ReportEndpoints
                     .OrderBy(p => p.Number)
                     .Select(p => new
                     {
+                        id = p.Id,
+                        orderId = p.OrderId,
                         number = p.Number,
                         orderNumber = store.GetOrder(p.OrderId)?.Number,
                         amountPaise = p.IsRefund ? -p.AmountPaise : p.AmountPaise,

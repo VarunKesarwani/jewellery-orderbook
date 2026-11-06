@@ -207,3 +207,61 @@ export interface PaymentRequest {
   method?: string | null;
   reference?: string | null;
 }
+
+// ---------------------------------------------------------------- reports
+
+export interface DailyOrderRow {
+  id: string;
+  number: number;
+  customer: string | null;
+  pieces: number;
+  subtotalPaise: number;
+  taxPaise: number;
+  finalAmountPaise: number;
+}
+
+export interface DailyOrdersReport {
+  date: string;
+  orderCount: number;
+  pieces: number;
+  valuePaise: number;
+  taxPaise: number;
+  rows: DailyOrderRow[];
+}
+
+export interface DailyDeliveryRow {
+  id: string;
+  orderId: string;
+  number: number;
+  orderNumber: number | null;
+  customer: string | null;
+  pieces: number;
+  receivedBy: string | null;
+}
+
+export interface DailyDeliveriesReport {
+  date: string;
+  deliveryCount: number;
+  pieces: number;
+  rows: DailyDeliveryRow[];
+}
+
+export interface DailyPaymentRow {
+  id: string;
+  orderId: string;
+  number: number;
+  orderNumber: number | null;
+  amountPaise: number;
+  method: string | null;
+  reference: string | null;
+  isRefund: boolean;
+}
+
+export interface DailyPaymentsReport {
+  date: string;
+  paymentCount: number;
+  collectedPaise: number;
+  refundedPaise: number;
+  netPaise: number;
+  rows: DailyPaymentRow[];
+}
