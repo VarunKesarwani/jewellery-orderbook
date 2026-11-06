@@ -15,6 +15,8 @@ the laptop, Entra ID for identity.
 - **Payments** — recorded against an order, optionally against a specific delivered line; the order's
   payment state is derived (Unpaid / PartiallyPaid / Paid).
 - **Reports** — three daily ones: orders, deliveries, payments.
+- **SQLite persistence** — schema applied on first start, WAL, foreign keys on. `IDataStore` keeps
+  an in-memory implementation for tests and throwaway runs.
 
 ## Scope decisions taken
 
@@ -58,6 +60,33 @@ Pricing checks, which run with no NuGet restore:
 dotnet run --project tests/JewelleryOrderbook.Checks
 ```
 
+## Database
+
+SQLite, one file at `src/api/data/orderbook.db`, created and migrated on first start. The schema
+ships inside the assembly as an embedded resource, so the app can bootstrap an empty file by itself.
+
+| Script | Purpose |
+| --- | --- |
+| `db/schema.sql` | Tables, indexes, foreign keys and CHECK constraints. Idempotent. |
+| `db/views.sql` | `v_order_totals`, `v_order_summary`, the three daily report views and delivery progress. |
+| `db/seed-dev.sql` | One customer and one order, for a fresh development database. |
+
+Applying them by hand, or onto an existing file:
+
+```bash
+sqlite3 src/api/data/orderbook.db < db/schema.sql
+sqlite3 src/api/data/orderbook.db < db/views.sql
+sqlite3 src/api/data/orderbook.db < db/seed-dev.sql   # development only
+```
+
+Switch to the in-memory store with `Database:Mode=Memory`. The file location and an optional
+passphrase are under `Database` in `appsettings.json`.
+
+**Encryption.** The file is plaintext SQLite today. The LLD calls for SQLCipher: swap
+`Microsoft.Data.Sqlite` for `Microsoft.Data.Sqlite.Core` plus `SQLitePCLRaw.bundle_e_sqlcipher` and
+set `Database:Password`. The `PRAGMA key` is already issued on every connection when a password is
+set, and is silently ignored by a non-cipher build, so nothing else changes.
+
 ## Identity
 
 The API is an OAuth resource server for Entra ID, mapping app roles to `Owner`, `Accountant` and
@@ -91,14 +120,18 @@ src/
     src/app/core/      API client and DTOs
     src/app/features/  dashboard, orders, customers
     src/app/shared/    formatting pipes
+db/
+  schema.sql                   tables, indexes, constraints
+  views.sql                    totals and daily report projections
+  seed-dev.sql                 one customer and one order
 tests/
   JewelleryOrderbook.Checks/   pricing checks
 ```
 
 ## Next
 
-SQLite persistence behind `IDataStore`, the order entry screen, delivery and payment screens, MSAL
-sign-in, and the backup and purge jobs.
+The order entry screen — the four tax boxes are the interesting part — then delivery and payment
+screens, MSAL sign-in, and the backup and purge jobs.
 
 ## Licence
 

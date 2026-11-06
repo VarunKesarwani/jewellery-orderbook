@@ -13,8 +13,23 @@ builder.Services.AddCorsForWebClient(builder.Configuration);
 // so the API is runnable before the app registration exists.
 builder.AddEntraAuthentication(builder.Configuration);
 
-// In memory for now. Swap for SQLite behind the same IDataStore interface.
-builder.Services.AddSingleton<IDataStore, InMemoryDataStore>();
+// Persistence. Sqlite is the real store; Memory exists for tests and for a throwaway run.
+var databaseMode = builder.Configuration["Database:Mode"] ?? "Sqlite";
+
+if (databaseMode.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
+{
+    var sqliteOptions = new SqliteOptions
+    {
+        Path = builder.Configuration["Database:Path"] ?? "data/orderbook.db",
+        Password = builder.Configuration["Database:Password"] ?? string.Empty
+    };
+
+    builder.Services.AddSingleton<IDataStore>(_ => new SqliteDataStore(sqliteOptions));
+}
+else
+{
+    builder.Services.AddSingleton<IDataStore, InMemoryDataStore>();
+}
 
 var app = builder.Build();
 

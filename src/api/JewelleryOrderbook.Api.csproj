@@ -10,6 +10,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.*" />
+  </ItemGroup>
+
+  <!-- The schema ships inside the assembly and is applied on first start. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\db\schema.sql" LogicalName="schema.sql" />
+    <EmbeddedResource Include="..\..\db\views.sql" LogicalName="views.sql" />
   </ItemGroup>
 
 </Project>
