@@ -99,14 +99,72 @@ set, and is silently ignored by a non-cipher build, so nothing else changes.
 
 ## Identity
 
-The API is an OAuth resource server for Entra ID, mapping app roles to `Owner`, `Accountant` and
-`Viewer` policies. Set `Entra:TenantId` and `Entra:Audience` in `src/api/appsettings.Development.json`
-to turn real validation on.
+OAuth 2.0 with Entra ID. The Angular app is a **public client** using authorization code + PKCE —
+no client secret anywhere in this repository, and there never should be. The API is a **resource
+server** that validates the bearer token locally against the tenant's published signing keys.
 
-With them blank and `ASPNETCORE_ENVIRONMENT=Development`, every request is authenticated as a local
-`Owner` through `DevelopmentAuthenticationHandler`. Outside Development the API refuses to start
-without a tenant. The Angular side will use `@azure/msal-angular` with authorization code + PKCE;
-there is no client secret anywhere in this repository and there never should be.
+Both sides stay dormant until configured, so the app still runs locally with no Azure account.
+
+### What to collect from Azure
+
+| # | Value | Where in the portal | Goes into |
+|---|---|---|---|
+| 1 | **Tenant ID** (GUID) | Entra ID → Overview → Tenant ID | `Entra:TenantId` (API), `entraConfig.tenantId` (web) |
+| 2 | **SPA client ID** | App registrations → the SPA app → Overview → Application (client) ID | `entraConfig.clientId` (web) |
+| 3 | **API client ID** | App registrations → the API app → Overview → Application (client) ID | `entraConfig.apiClientId` (web) |
+| 4 | **Application ID URI** | API app → Expose an API → Application ID URI (defaults to `api://<api client id>`) | `Entra:Audience` (API) |
+| 5 | **Scope name** | API app → Expose an API → Scopes — the full string `api://<api client id>/access_as_user` | `entraConfig.apiScope` (web) |
+| 6 | **Redirect URIs** | SPA app → Authentication → Single-page application | see below |
+| 7 | **App role names** | API app → App roles — must be exactly `Owner`, `Accountant`, `Viewer` | matched by the API policies |
+
+### Portal steps
+
+1. **Create the API registration.** App registrations → New. Single tenant. Then *Expose an API* →
+   set the Application ID URI to `api://<api-client-id>` → Add a scope called `access_as_user`
+   (admin consent display name "Access the order book") → *App roles* → create three roles with the
+   values `Owner`, `Accountant`, `Viewer`, allowed member type **Users/Groups**.
+2. **Create the SPA registration.** App registrations → New. Single tenant. *Authentication* → Add a
+   platform → **Single-page application** → redirect URI `http://localhost:4200` for development, and
+   `https://<your-tailnet-name>.ts.net` for the phone. Do **not** add a client secret.
+3. **Grant the SPA access to the API.** SPA app → *API permissions* → Add a permission → My APIs →
+   the API app → delegated → `access_as_user` → Grant admin consent.
+4. **Assign people to roles.** Enterprise applications → the API app → Users and groups → add each
+   user and pick their role. Without an assignment the token carries no `roles` claim and every
+   request is a 403 even though the signature is valid.
+5. **Turn on MFA.** Entra ID → Properties → Manage security defaults → Enabled. That is the free
+   tier's MFA; Conditional Access needs P1.
+
+### Filling it in
+
+`src/api/appsettings.Development.json` (or user secrets — better, since this file is committed):
+
+```json
+{ "Entra": { "TenantId": "<tenant-guid>", "Audience": "api://<api-client-id>" } }
+```
+
+`src/web/src/app/core/auth.config.ts`:
+
+```ts
+export const entraConfig: EntraConfig = {
+  clientId: '<spa-client-id>',
+  tenantId: '<tenant-guid>',
+  apiClientId: '<api-client-id>',
+  apiScope: 'api://<api-client-id>/access_as_user'
+};
+```
+
+Leave both blank and: the API authenticates every request as a local `Owner` through
+`DevelopmentAuthenticationHandler`, the SPA shows no sign-in button, and the guard lets everything
+through. Outside Development the API **refuses to start** without a tenant — that guard is deliberate.
+
+### When it fails
+
+Every rejected token is logged with the exception attached (`JewelleryOrderbook.Auth`). The usual
+causes, in order of frequency: the SPA is registered as a *Web* platform instead of *Single-page
+application* (produces a CORS error on the token call that looks like a network fault); the audience
+is `api://<guid>` but the token was issued for Graph; the user has no app role assigned so `roles` is
+empty and a valid token gets a 403; and the redirect URI does not match exactly, including trailing
+slashes.
 
 ## Conventions
 
