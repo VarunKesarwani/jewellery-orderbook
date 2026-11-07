@@ -75,6 +75,11 @@ export class Api {
     return this.http.get<Payment[]>('/api/payments', { params });
   }
 
+  paymentsForDate(date: string): Observable<Payment[]> {
+    const params = new HttpParams().set('date', date);
+    return this.http.get<Payment[]>('/api/payments', { params });
+  }
+
   createPayment(body: PaymentRequest): Observable<Payment> {
     return this.http.post<Payment>('/api/payments', body);
   }

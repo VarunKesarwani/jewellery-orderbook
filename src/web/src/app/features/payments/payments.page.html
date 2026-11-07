@@ -1,0 +1,117 @@
+<section class="card">
+  <div class="toolbar">
+    <h1>Payments</h1>
+    <span class="spacer"></span>
+    <span class="muted">Received today {{ collectedToday() | inr }}</span>
+  </div>
+
+  <p class="muted">
+    Pick an order that still has a balance, enter what was taken, and record it. An order stays
+    open until it is fully paid; part payments are normal.
+  </p>
+
+  @if (message()) {
+    <p class="banner">{{ message() }}</p>
+  }
+  @if (error()) {
+    <p class="card--error">{{ error() }}</p>
+  }
+
+  <div class="grid-2">
+    <!-- open orders -->
+    <div>
+      <h2>Orders with a balance</h2>
+      <input placeholder="Search by order number or customer" (input)="onSearch($event)" />
+
+      @if (openOrders().length === 0) {
+        <p class="muted">Nothing outstanding.</p>
+      } @else {
+        <ul class="list">
+          @for (order of openOrders(); track order.id) {
+            <li
+              class="list__row"
+              [class.is-selected]="order.id === selectedId()"
+              (click)="select(order)">
+              <div class="list__main">
+                <strong>#{{ order.number }} · {{ order.customerName }}</strong>
+                <span class="muted">{{ order.orderDate }} · {{ order.paymentState }}</span>
+              </div>
+              <div class="list__side">
+                <strong>{{ order.finalAmountPaise - order.paidPaise | inr }}</strong>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <!-- payment form -->
+    <div>
+      <h2>Record a payment</h2>
+
+      @if (selected(); as order) {
+        <dl class="order-totals">
+          <div><dt>Order</dt><dd>#{{ order.number }}</dd></div>
+          <div><dt>Total</dt><dd>{{ order.finalAmountPaise | inr }}</dd></div>
+          <div><dt>Paid</dt><dd>{{ order.paidPaise | inr }}</dd></div>
+          <div class="strong"><dt>Balance</dt><dd>{{ balance() | inr }}</dd></div>
+        </dl>
+
+        <form [formGroup]="form" (ngSubmit)="record()">
+          <div class="grid-3">
+            <label>
+              Amount (₹)
+              <input type="number" step="0.01" min="0" formControlName="amountRupees" />
+            </label>
+            <label>
+              Received on
+              <input type="date" formControlName="paidOn" />
+            </label>
+            <label>
+              Mode
+              <select formControlName="method">
+                <option value="UPI">UPI</option>
+                <option value="Cash">Cash</option>
+                <option value="Card">Card</option>
+                <option value="Bank">Bank transfer</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Reference
+            <input formControlName="reference" placeholder="TXN id, cheque number" />
+          </label>
+
+          <p class="actions">
+            <button class="button" type="submit" [disabled]="busy()">Record payment</button>
+            <button type="button" class="link-button" (click)="select(order)">Use full balance</button>
+          </p>
+        </form>
+      } @else {
+        <p class="muted">Pick an order on the left to record a payment against it.</p>
+      }
+    </div>
+  </div>
+
+  <h2>Received on {{ form.value.paidOn }}</h2>
+  @if (todaysPayments().length === 0) {
+    <p class="muted">No payments recorded for this date.</p>
+  } @else {
+    <ul class="list">
+      @for (payment of todaysPayments(); track payment.id) {
+        <li>
+          <div class="list__main">
+            <strong>#{{ payment.number }}</strong>
+            <span class="muted">{{ payment.method }} · {{ payment.reference || 'no reference' }}</span>
+          </div>
+          <div class="list__side">
+            @if (payment.isRefund) {
+              <span class="pill">refund</span>
+            }
+            <strong>{{ (payment.isRefund ? -payment.amountPaise : payment.amountPaise) | inr }}</strong>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

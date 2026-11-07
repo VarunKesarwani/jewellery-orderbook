@@ -17,9 +17,11 @@ the laptop, Entra ID for identity.
 - **Order entry screen** — customer picker, metal block, stones, the four tax boxes, and live
   totals priced by the server on every keystroke (`POST /api/orders/calculate`), so the preview
   cannot drift from what gets stored.
-- **Order detail** — items with delivered and remaining counts, delivery recording per line, payment
-  recording, status changes, and cancellation with refund. Delivery and payment are panels on the
-  order rather than separate screens.
+- **Order detail** — items with delivered and remaining counts, delivery recording per line, status
+  changes, and cancellation with refund. Payment moved to its own screen; the order links to it.
+- **Payments screen** — its own page, not a panel on the order: orders with a balance, an amount
+  pre-filled with the balance, part payments, and the day's collections listed below. An order stays
+  open until it is fully paid.
 - **Reports** — a daily screen with three views of one date: orders raised, deliveries made, money
   received, each grouped by its own date and each linking back to the order.
 - **SQLite persistence** — schema applied on first start, WAL, foreign keys on. `IDataStore` keeps
@@ -40,7 +42,7 @@ These were settled deliberately and the code follows them:
   to 3, 5, 9, 12, 18 or 28 percent. Unchecked means untaxed.
 
 One consequence worth knowing: **other charges are not taxed**, because the four components have no
-box for them. If you need them taxed, say so and they join the stone component or get a fifth box.
+box for them. That is deliberate — confirmed with the shop, not an oversight.
 
 ## Prerequisites
 
@@ -137,7 +139,7 @@ tests/
 
 ## Next
 
-MSAL sign-in and the backup and purge jobs.
+MSAL sign-in, idempotency on order creation, and the backup and purge jobs.
 
 ## Licence
 

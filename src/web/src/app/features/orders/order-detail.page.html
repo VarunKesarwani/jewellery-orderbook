@@ -87,29 +87,15 @@
       </form>
     }
 
-    <!-- payment -->
+    <!-- payment lives on its own screen -->
     @if (o.status !== 'Cancelled') {
-      <h2>Record a payment</h2>
-      <form [formGroup]="paymentForm" (ngSubmit)="recordPayment()">
-        <div class="grid-4">
-          <label>Amount (₹) <input type="number" step="0.01" min="0" formControlName="amountRupees" /></label>
-          <label>Received on <input type="date" formControlName="paidOn" /></label>
-          <label>
-            Method
-            <select formControlName="method">
-              <option value="UPI">UPI</option>
-              <option value="Cash">Cash</option>
-              <option value="Card">Card</option>
-              <option value="Bank">Bank transfer</option>
-            </select>
-          </label>
-          <label>Reference <input formControlName="reference" /></label>
-        </div>
-        <p class="actions">
-          <button class="button" type="submit" [disabled]="busy()">Record payment</button>
-          <span class="muted">Balance {{ balance() | inr }}</span>
-        </p>
-      </form>
+      <h2>Payments</h2>
+      <p class="actions">
+        <a class="button" [routerLink]="['/payments']" [queryParams]="{ orderId: o.id }">
+          Record a payment
+        </a>
+        <span class="muted">Balance {{ balance() | inr }}</span>
+      </p>
     }
 
     <!-- status and cancellation -->

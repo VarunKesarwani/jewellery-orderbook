@@ -363,3 +363,8 @@ label.inline {
 label.inline input {
   width: auto;
 }
+
+.list__row.is-selected {
+  background: var(--accent-soft);
+  outline: 1px solid var(--accent);
+}
