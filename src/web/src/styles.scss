@@ -368,3 +368,61 @@ label.inline input {
   background: var(--accent-soft);
   outline: 1px solid var(--accent);
 }
+
+/* ---------- customer picker ---------- */
+
+.hidden-select {
+  display: none;
+}
+
+.picker {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.picker__label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.picker__results {
+  border-top: 1px solid var(--line);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.picked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.picked span {
+  display: block;
+  font-size: 12px;
+}
+
+.new-customer {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px 12px 2px;
+}
+
+.refund-panel {
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  padding: 12px 14px 4px;
+  margin-top: 12px;
+}
+
+.refund-panel h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+  color: var(--danger);
+}

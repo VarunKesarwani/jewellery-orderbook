@@ -25,6 +25,7 @@ export class OrderDetailPage {
   protected readonly deliveries = signal<Delivery[]>([]);
   protected readonly payments = signal<Payment[]>([]);
   protected readonly busy = signal(false);
+  protected readonly showCancel = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly message = signal<string | null>(null);
   private readonly quantities = signal<Record<string, number>>({});
@@ -35,6 +36,13 @@ export class OrderDetailPage {
     notes: ['']
   });
 
+
+  protected readonly paymentForm = this.fb.group({
+    amountRupees: [0, [Validators.min(0)]],
+    paidOn: [this.today, Validators.required],
+    method: ['UPI'],
+    reference: ['']
+  });
 
   protected readonly cancelForm = this.fb.group({ reason: [''] });
 
@@ -94,6 +102,46 @@ export class OrderDetailPage {
   }
 
 
+  protected useFullBalance(): void {
+    this.paymentForm.patchValue({ amountRupees: this.balance() / 100 });
+  }
+
+  protected recordPayment(): void {
+    const order = this.order();
+    const amount = Math.round((Number(this.paymentForm.value.amountRupees) || 0) * 100);
+
+    if (!order || amount <= 0) {
+      this.error.set('Enter an amount greater than zero.');
+      return;
+    }
+
+    if (amount > this.balance()) {
+      this.error.set('That is more than the outstanding balance.');
+      return;
+    }
+
+    this.busy.set(true);
+    this.error.set(null);
+
+    this.api
+      .createPayment({
+        orderId: order.id,
+        amountPaise: amount,
+        paidOn: this.paymentForm.value.paidOn ?? this.today,
+        method: this.paymentForm.value.method || null,
+        reference: this.paymentForm.value.reference || null
+      })
+      .subscribe({
+        next: (payment) => {
+          this.message.set(`Payment #${payment.number} recorded.`);
+          this.paymentForm.patchValue({ amountRupees: 0, reference: '' });
+          this.busy.set(false);
+          this.load();
+        },
+        error: (err) => this.fail(err, 'Could not record the payment.')
+      });
+  }
+
   protected setStatus(status: string): void {
     this.busy.set(true);
     this.api.changeOrderStatus(this.orderId, status).subscribe({
@@ -116,6 +164,7 @@ export class OrderDetailPage {
     this.api.cancelOrder(this.orderId, reason).subscribe({
       next: () => {
         this.message.set('Order cancelled and refunded.');
+        this.showCancel.set(false);
         this.busy.set(false);
         this.load();
       },
@@ -142,6 +191,10 @@ export class OrderDetailPage {
             remaining[line.id] = Math.max(0, line.quantity - line.deliveredPieces);
           }
           this.quantities.set(remaining);
+
+          this.paymentForm.patchValue({
+            amountRupees: Math.max(0, order.finalAmountPaise - order.paidPaise) / 100
+          });
         },
         error: (err) => this.error.set(err?.error?.detail ?? 'Could not load the order.')
       });

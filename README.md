@@ -14,11 +14,12 @@ the laptop, Entra ID for identity.
 - **Delivery** — per line, partial allowed, order flips to Delivered when every piece is out.
 - **Payments** — recorded against an order, optionally against a specific delivered line; the order's
   payment state is derived (Unpaid / PartiallyPaid / Paid).
-- **Order entry screen** — customer picker, metal block, stones, the four tax boxes, and live
+- **Order entry screen** — search an existing customer or create one inline, metal block, stones, the four tax boxes, and live
   totals priced by the server on every keystroke (`POST /api/orders/calculate`), so the preview
   cannot drift from what gets stored.
-- **Order detail** — items with delivered and remaining counts, delivery recording per line, status
-  changes, and cancellation with refund. Payment moved to its own screen; the order links to it.
+- **Order detail** — items with delivered and remaining counts, delivery recording per line, a
+  payments grid with an inline form to add one, status changes, and cancellation that first shows
+  exactly which payments will be refunded and the total before you confirm.
 - **Payments screen** — its own page, not a panel on the order: orders with a balance, an amount
   pre-filled with the balance, part payments, and the day's collections listed below. An order stays
   open until it is fully paid.

@@ -8,15 +8,68 @@
   <form [formGroup]="form" (ngSubmit)="save()">
     <!-- header -->
     <div class="grid-3">
-      <label>
-        Customer *
-        <select formControlName="customerId" required>
+      <div class="picker">
+        <label class="picker__label">Customer *</label>
+
+        <!-- bound control, driven by the picker below -->
+        <select formControlName="customerId" class="hidden-select">
           <option value="">Select a customer</option>
           @for (customer of customers(); track customer.id) {
             <option [value]="customer.id">{{ customer.name }}</option>
           }
         </select>
-      </label>
+
+        @if (selectedCustomer(); as chosen) {
+          <div class="picked">
+            <div>
+              <strong>{{ chosen.name }}</strong>
+              <span class="muted">{{ chosen.phone }}</span>
+            </div>
+            <button type="button" class="link-button" (click)="clearCustomer()">change</button>
+          </div>
+        } @else {
+          <input placeholder="Search name, phone or PAN" (input)="onCustomerSearch($event)" />
+
+          @if (filteredCustomers().length > 0) {
+            <ul class="list picker__results">
+              @for (customer of filteredCustomers(); track customer.id) {
+                <li class="list__row" (click)="pickCustomer(customer)">
+                  <div class="list__main">
+                    <strong>{{ customer.name }}</strong>
+                    <span class="muted">{{ customer.phone }}{{ customer.pan ? ' · ' + customer.pan : '' }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else if (customerSearch()) {
+            <p class="muted">No customer matches that search.</p>
+          }
+
+          <button type="button" class="link-button" (click)="toggleNewCustomer()">
+            {{ showNewCustomer() ? 'Cancel new customer' : '+ New customer' }}
+          </button>
+
+          @if (showNewCustomer()) {
+            <div class="new-customer" [formGroup]="newCustomer">
+              <div class="grid-3">
+                <label>Name * <input formControlName="name" /></label>
+                <label>Phone * <input formControlName="phone" /></label>
+                <label>Address * <input formControlName="address" /></label>
+              </div>
+              <div class="grid-3">
+                <label>PAN <input formControlName="pan" maxlength="10" /></label>
+                <div class="spacer"></div>
+                <div class="spacer"></div>
+              </div>
+              <p class="actions">
+                <button type="button" class="button" [disabled]="creatingCustomer()" (click)="createCustomer()">
+                  {{ creatingCustomer() ? 'Saving…' : 'Save and use' }}
+                </button>
+              </p>
+            </div>
+          }
+        }
+      </div>
       <label>
         Order date
         <input type="date" formControlName="orderDate" />

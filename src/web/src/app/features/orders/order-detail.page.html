@@ -29,7 +29,10 @@
         <tbody>
           @for (line of o.lines; track line.id) {
             <tr>
-              <td>{{ line.itemName }}<br /><small class="muted">{{ line.metalPurity }} · {{ line.metalType }}</small></td>
+              <td>
+                {{ line.itemName }}<br />
+                <small class="muted">{{ line.metalPurity }} · {{ line.metalType }}</small>
+              </td>
               <td>{{ line.grossWeightMg | grams }}</td>
               <td>{{ line.quantity }}</td>
               <td>{{ line.deliveredPieces }}</td>
@@ -87,15 +90,56 @@
       </form>
     }
 
-    <!-- payment lives on its own screen -->
-    @if (o.status !== 'Cancelled') {
-      <h2>Payments</h2>
-      <p class="actions">
-        <a class="button" [routerLink]="['/payments']" [queryParams]="{ orderId: o.id }">
-          Record a payment
-        </a>
-        <span class="muted">Balance {{ balance() | inr }}</span>
-      </p>
+    <!-- payments -->
+    <h2>Payments</h2>
+    @if (payments().length === 0) {
+      <p class="muted">Nothing received yet.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Payment</th><th>Date</th><th>Mode</th><th>Reference</th><th>Amount</th></tr></thead>
+          <tbody>
+            @for (p of payments(); track p.id) {
+              <tr>
+                <td>#{{ p.number }}</td>
+                <td>{{ p.paidOn }}</td>
+                <td>{{ p.method || '—' }}</td>
+                <td>{{ p.reference || '—' }}</td>
+                <td>
+                  @if (p.isRefund) {
+                    <span class="pill">refund</span>
+                  }
+                  <strong>{{ (p.isRefund ? -p.amountPaise : p.amountPaise) | inr }}</strong>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (o.status !== 'Cancelled' && balance() > 0) {
+      <form [formGroup]="paymentForm" (ngSubmit)="recordPayment()">
+        <div class="grid-4">
+          <label>Amount (₹) <input type="number" step="0.01" min="0" formControlName="amountRupees" /></label>
+          <label>Received on <input type="date" formControlName="paidOn" /></label>
+          <label>
+            Mode
+            <select formControlName="method">
+              <option value="UPI">UPI</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="Bank">Bank transfer</option>
+            </select>
+          </label>
+          <label>Reference <input formControlName="reference" /></label>
+        </div>
+        <p class="actions">
+          <button class="button" type="submit" [disabled]="busy()">Record payment</button>
+          <button type="button" class="link-button" (click)="useFullBalance()">Use full balance</button>
+          <span class="muted">Balance {{ balance() | inr }}</span>
+        </p>
+      </form>
     }
 
     <!-- status and cancellation -->
@@ -107,16 +151,60 @@
       </p>
 
       @if (o.deliveredPieces === 0) {
-        <form [formGroup]="cancelForm" (ngSubmit)="cancel()">
-          <div class="grid-3">
-            <label>Cancellation reason <input formControlName="reason" placeholder="Customer changed their mind" /></label>
-          </div>
+        @if (!showCancel()) {
           <p class="actions">
-            <button class="button button--ghost" type="submit" [disabled]="busy() || !cancelForm.value.reason">
-              Cancel order and refund
+            <button type="button" class="button button--ghost" (click)="showCancel.set(true)">
+              Cancel this order
             </button>
           </p>
-        </form>
+        } @else {
+          <div class="refund-panel">
+            <h3>Cancel order #{{ o.number }}</h3>
+
+            @if (payments().length === 0) {
+              <p class="muted">No payments have been taken, so there is nothing to refund.</p>
+            } @else {
+              <p class="muted">These payments will be refunded in full:</p>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Payment</th><th>Date</th><th>Mode</th><th>Reference</th><th>Amount</th></tr></thead>
+                  <tbody>
+                    @for (p of payments(); track p.id) {
+                      @if (!p.isRefund) {
+                        <tr>
+                          <td>#{{ p.number }}</td>
+                          <td>{{ p.paidOn }}</td>
+                          <td>{{ p.method || '—' }}</td>
+                          <td>{{ p.reference || '—' }}</td>
+                          <td>{{ p.amountPaise | inr }}</td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="4">Total refund</td>
+                      <td><strong>{{ o.paidPaise | inr }}</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            }
+
+            <form [formGroup]="cancelForm" (ngSubmit)="cancel()">
+              <label>
+                Reason
+                <input formControlName="reason" placeholder="Customer changed their mind" />
+              </label>
+              <p class="actions">
+                <button class="button" type="submit" [disabled]="busy() || !cancelForm.value.reason">
+                  {{ o.paidPaise > 0 ? 'Cancel and refund ' + (o.paidPaise | inr) : 'Cancel order' }}
+                </button>
+                <button type="button" class="link-button" (click)="showCancel.set(false)">Keep the order</button>
+              </p>
+            </form>
+          </div>
+        }
       } @else {
         <p class="muted">This order cannot be cancelled — something has already been delivered.</p>
       }
@@ -138,28 +226,6 @@
               <span class="muted">{{ d.deliveredOn }} · {{ d.totalPieces }} pieces</span>
             </div>
             <div class="list__side"><span class="pill">{{ d.receivedBy || 'no name' }}</span></div>
-          </li>
-        }
-      </ul>
-    }
-
-    <h2>Payments</h2>
-    @if (payments().length === 0) {
-      <p class="muted">Nothing received yet.</p>
-    } @else {
-      <ul class="list">
-        @for (p of payments(); track p.id) {
-          <li>
-            <div class="list__main">
-              <strong>#{{ p.number }}</strong>
-              <span class="muted">{{ p.paidOn }} · {{ p.method }}</span>
-            </div>
-            <div class="list__side">
-              @if (p.isRefund) {
-                <span class="pill">refund</span>
-              }
-              <strong>{{ (p.isRefund ? -p.amountPaise : p.amountPaise) | inr }}</strong>
-            </div>
           </li>
         }
       </ul>

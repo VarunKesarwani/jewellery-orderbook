@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -28,6 +28,38 @@ export class OrderEntryPage {
   ];
 
   protected readonly customers = signal<Customer[]>([]);
+  protected readonly customerSearch = signal('');
+  protected readonly showNewCustomer = signal(false);
+  protected readonly creatingCustomer = signal(false);
+
+  // A signal, not a computed: the form is not a signal source, so a computed over
+  // form.value would cache its first result and never see the pick.
+  protected readonly selectedCustomer = signal<Customer | null>(null);
+
+  protected readonly filteredCustomers = computed(() => {
+    const term = this.customerSearch().trim().toLowerCase();
+    const all = this.customers();
+
+    if (!term) {
+      return all.slice(0, 5);
+    }
+
+    return all
+      .filter(
+        (c) =>
+          c.name.toLowerCase().includes(term) ||
+          c.phone.includes(term) ||
+          (c.pan ?? '').toLowerCase().includes(term)
+      )
+      .slice(0, 8);
+  });
+
+  protected readonly newCustomer = this.fb.group({
+    name: ['', Validators.required],
+    phone: ['', Validators.required],
+    address: ['', Validators.required],
+    pan: ['']
+  });
   protected readonly preview = signal<Order | null>(null);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -82,6 +114,57 @@ export class OrderEntryPage {
     const value = this.form.getRawValue() as any;
     const first = value.lines?.[0];
     return !!value.customerId && !!first?.itemName && Number(first?.grossWeightGrams) > 0;
+  }
+
+  protected onCustomerSearch(event: Event): void {
+    this.customerSearch.set((event.target as HTMLInputElement).value);
+  }
+
+  protected pickCustomer(customer: Customer): void {
+    this.form.patchValue({ customerId: customer.id });
+    this.selectedCustomer.set(customer);
+    this.customerSearch.set('');
+    this.showNewCustomer.set(false);
+  }
+
+  protected clearCustomer(): void {
+    this.form.patchValue({ customerId: '' });
+    this.selectedCustomer.set(null);
+  }
+
+  protected toggleNewCustomer(): void {
+    this.showNewCustomer.update((open) => !open);
+  }
+
+  protected createCustomer(): void {
+    const value = this.newCustomer.getRawValue();
+    if (!value.name || !value.phone || !value.address) {
+      this.error.set('Name, phone and address are required.');
+      return;
+    }
+
+    this.creatingCustomer.set(true);
+    this.error.set(null);
+
+    this.api
+      .createCustomer({
+        name: value.name,
+        phone: value.phone,
+        address: value.address,
+        pan: value.pan || null
+      })
+      .subscribe({
+        next: (customer) => {
+          this.customers.update((list) => [...list, customer]);
+          this.pickCustomer(customer);
+          this.newCustomer.reset({ name: '', phone: '', address: '', pan: '' });
+          this.creatingCustomer.set(false);
+        },
+        error: (err) => {
+          this.error.set(err?.error?.detail ?? err?.error?.code ?? 'Could not create the customer.');
+          this.creatingCustomer.set(false);
+        }
+      });
   }
 
   protected stonesOf(lineIndex: number): FormArray {
