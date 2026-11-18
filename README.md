@@ -64,6 +64,9 @@ npm install
 npm start
 ```
 
+To open the app on your phone, see [DEPLOYMENT.md](DEPLOYMENT.md) — same Wi-Fi, Tailscale, or
+containers.
+
 Pricing checks, which run with no NuGet restore:
 
 ```bash
