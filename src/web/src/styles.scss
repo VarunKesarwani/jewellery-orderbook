@@ -426,3 +426,27 @@ label.inline input {
   margin: 0 0 8px;
   color: var(--danger);
 }
+
+/* ---------- identity ---------- */
+
+.who {
+  font-size: 12px;
+  color: #9fc2d3;
+  white-space: nowrap;
+}
+
+.who-button {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e8f1f6;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.who-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
